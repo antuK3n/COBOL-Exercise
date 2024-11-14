@@ -24,12 +24,12 @@ def setup_admin_window():
 
     setup_app = CTk()
     setup_app.title("Admin Setup")
+    setup_app.resizable(False, False)
     
     # Set desired window size before centering
     window_width = 600
     window_height = 500
     setup_app.geometry(f"{window_width}x{window_height}")
-    setup_app.resizable(False, False)
 
     # Calculate the position to center the window on the screen
     screen_width = setup_app.winfo_screenwidth()
@@ -50,7 +50,14 @@ def setup_admin_window():
     else:
         print("Logo image not found!")
 
-    setup_rounded_box = CTkFrame(master=setup_frame, fg_color="#34405a", corner_radius=20, width=280, height=320, bg_color="#000001")
+    setup_rounded_box = CTkFrame(
+        master=setup_frame, 
+        fg_color="#34405a", 
+        corner_radius=20, 
+        width=280, 
+        height=320, 
+        bg_color="#000001"
+    )
     setup_rounded_box.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
     pywinstyles.set_opacity(setup_rounded_box, color="#000001")
 
@@ -71,22 +78,68 @@ def setup_admin_window():
 
         return username_valid and password_valid
 
-    setup_title_label = CTkLabel(master=setup_rounded_box, text="OS", text_color="white", font=("Work sans", 70, "italic"))
+    setup_title_label = CTkLabel(
+        master=setup_rounded_box, 
+        text="OS", 
+        text_color="white", 
+        font=("Work sans", 70, "italic")
+    )
     setup_title_label.place(relx=0.23, rely=0.159, anchor=tkinter.CENTER)
-    CTkLabel(master=setup_rounded_box, text="POS", text_color="white", font=("Public sans", 65, "bold")).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
-    CTkLabel(master=setup_rounded_box, text="P O I N T  O F  S A L E  S Y S T E M", text_color="white", font=("Public sans", 14.8)).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
 
-    setup_input_label = CTkLabel(master=setup_rounded_box, text="Enter New Username", text_color="white", font=("Public sans", 13.5, "bold"))
+    CTkLabel(
+        master=setup_rounded_box, 
+        text="POS", 
+        text_color="white", 
+        font=("Public sans", 65, "bold")
+    ).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
+
+    CTkLabel(
+        master=setup_rounded_box, 
+        text="P O I N T  O F  S A L E  S Y S T E M", 
+        text_color="white", 
+        font=("Public sans", 14.8)
+    ).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
+
+    setup_input_label = CTkLabel(
+        master=setup_rounded_box, 
+        text="Enter New Username", 
+        text_color="white", 
+        font=("Public sans", 13.5, "bold")
+    )
     setup_input_label.place(relx=0.34, rely=0.375, anchor=tkinter.CENTER)
 
-    setup_username_entry = CTkEntry(master=setup_rounded_box, width=230, height=35, text_color="black", font=("Public sans", 12, "bold"), fg_color="#cdd3df", placeholder_text="Username (at least 5 characters)", placeholder_text_color="grey")
+    setup_username_entry = CTkEntry(
+        master=setup_rounded_box, 
+        width=230, 
+        height=35, 
+        text_color="black", 
+        font=("Public sans", 12, "bold"), 
+        fg_color="#cdd3df", 
+        placeholder_text="Username (at least 5 characters)", 
+        placeholder_text_color="grey"
+    )
     setup_username_entry.place(relx=0.5, rely=0.465, anchor=tkinter.CENTER)
     setup_username_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
-    setup_password_label = CTkLabel(master=setup_rounded_box, text="Enter New Password", text_color="white", font=("Public sans", 13.5, "bold"))
+    setup_password_label = CTkLabel(
+        master=setup_rounded_box, 
+        text="Enter New Password", 
+        text_color="white", 
+        font=("Public sans", 13.5, "bold")
+    )
     setup_password_label.place(relx=0.34, rely=0.565, anchor=tkinter.CENTER)
 
-    setup_password_entry = CTkEntry(master=setup_rounded_box, width=230, height=35, show="*", text_color="black", font=("Public sans", 12, "bold"), fg_color="#cdd3df", placeholder_text="Password (at least 8 characters)", placeholder_text_color="grey")
+    setup_password_entry = CTkEntry(
+        master=setup_rounded_box, 
+        width=230, 
+        height=35, 
+        show="*", 
+        text_color="black", 
+        font=("Public sans", 12, "bold"), 
+        fg_color="#cdd3df", 
+        placeholder_text="Password (at least 8 characters)", 
+        placeholder_text_color="grey"
+    )
     setup_password_entry.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
     setup_password_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
@@ -120,7 +173,6 @@ def setup_admin_window():
         setup_pin_entries.append(setup_pin_entry)
 
     def show_pin_step():
-
         if not check_entries():
             # Display an error message if username or password is invalid
             if not hasattr(show_pin_step, "warning_label"):
@@ -134,13 +186,13 @@ def setup_admin_window():
                 show_pin_step.warning_label.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
             return  # Exit the function if credentials are invalid
         
-        # Hide the warning label if credentials are valid
+        # Hide the username and password fields
+        for widget in [setup_input_label, setup_username_entry, setup_password_label, setup_password_entry]:
+            widget.place_forget()
+
+        # Hide the warning label if it exists
         if hasattr(show_pin_step, "warning_label"):
             show_pin_step.warning_label.place_forget()  # Remove the warning label
-        
-            # Hide the username and password fields
-            for widget in [setup_input_label, setup_username_entry, setup_password_label, setup_password_entry]:
-                widget.place_forget()
 
         # Show the pin entries
         for i, pin_entry in enumerate(setup_pin_entries):
@@ -150,11 +202,27 @@ def setup_admin_window():
         pin_label.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
         submit_new_pin_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
     
-    setup_button = CTkButton(master=setup_rounded_box, text="Continue", fg_color="#7BA774", hover_color="#6E9770", text_color="black", corner_radius=8, width=230, height=38, bg_color="#000001", command=show_pin_step)
+    setup_button = CTkButton(
+        master=setup_rounded_box, 
+        text="Continue", 
+        fg_color="#7BA774", 
+        hover_color="#6E9770", 
+        text_color="black", 
+        corner_radius=8, 
+        width=230, 
+        height=38, 
+        bg_color="#000001", 
+        command=show_pin_step
+    )
     setup_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
 
     # Optionally, you can place a pin label and a submit button for the pin entry
-    pin_label = CTkLabel(master=setup_rounded_box, text="Enter New PIN", text_color="white", font=("Public sans", 13.5, "bold"))
+    pin_label = CTkLabel(
+        master=setup_rounded_box, 
+        text="Enter New PIN", 
+        text_color="white", 
+        font=("Public sans", 13.5, "bold")
+    )
     pin_label.place_forget()
 
     # Button for submitting PIN

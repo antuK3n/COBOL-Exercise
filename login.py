@@ -29,7 +29,6 @@ def create_login_window():
     window_width = 600
     window_height = 500
     login_app.geometry(f"{window_width}x{window_height}")
-    login_app.resizable(False, False)
 
     # Calculate the position to center the window on the screen
     screen_width = login_app.winfo_screenwidth()
@@ -50,7 +49,14 @@ def create_login_window():
     else:
         print("Logo image not found!")
 
-    rounded_box = CTkFrame(master=frame, fg_color="#34405a", corner_radius=20, width=280, height=320, bg_color="#000001")
+    rounded_box = CTkFrame(
+        master=frame, 
+        fg_color="#34405a", 
+        corner_radius=20, 
+        width=280, 
+        height=320, 
+        bg_color="#000001"
+    )
     rounded_box.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
     pywinstyles.set_opacity(rounded_box, color="#000001")
 
@@ -101,23 +107,64 @@ def create_login_window():
                 pin_entry.delete(0, tkinter.END)
             pin_entries[0].focus()  # Set focus to the first pin entry box
 
-
-    title_label = CTkLabel(master=rounded_box, text="OS", text_color="white", font=("Work sans", 70, "italic"))
+    title_label = CTkLabel(
+        master=rounded_box, 
+        text="OS", 
+        text_color="white", 
+        font=("Work sans", 70, "italic")
+    )
     title_label.place(relx=0.23, rely=0.159, anchor=tkinter.CENTER)
-    CTkLabel(master=rounded_box, text="POS", text_color="white", font=("Public sans", 65, "bold")).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
-    CTkLabel(master=rounded_box, text="P O I N T  O F  S A L E  S Y S T E M", text_color="white", font=("Public sans", 14.8)).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
 
-    input_label = CTkLabel(master=rounded_box, text="Username", text_color="white", font=("Public sans", 13.5, "bold"))
+    CTkLabel(
+        master=rounded_box, 
+        text="POS", 
+        text_color="white", 
+        font=("Public sans", 65, "bold")
+    ).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
+
+    CTkLabel(
+        master=rounded_box, 
+        text="P O I N T  O F  S A L E  S Y S T E M", 
+        text_color="white", 
+        font=("Public sans", 14.8)
+    ).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
+
+    input_label = CTkLabel(
+        master=rounded_box, 
+        text="Username", 
+        text_color="white", 
+        font=("Public sans", 13.5, "bold")
+    )
     input_label.place(relx=0.21, rely=0.375, anchor=tkinter.CENTER)
 
-    username_entry = CTkEntry(master=rounded_box, width=230, height=35, text_color="black", font=("Public sans", 12, "bold"), fg_color="#cdd3df")
+    username_entry = CTkEntry(
+        master=rounded_box, 
+        width=230, 
+        height=35, 
+        text_color="black", 
+        font=("Public sans", 12, "bold"), 
+        fg_color="#cdd3df"
+    )
     username_entry.place(relx=0.5, rely=0.465, anchor=tkinter.CENTER)
     username_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
-    password_label = CTkLabel(master=rounded_box, text="Password", text_color="white", font=("Public sans", 13.5, "bold"))
+    password_label = CTkLabel(
+        master=rounded_box, 
+        text="Password", 
+        text_color="white", 
+        font=("Public sans", 13.5, "bold")
+    )
     password_label.place(relx=0.2, rely=0.565, anchor=tkinter.CENTER)
 
-    password_entry = CTkEntry(master=rounded_box, width=230, height=35, show="*", text_color="black", font=("Public sans", 12, "bold"), fg_color="#cdd3df")
+    password_entry = CTkEntry(
+        master=rounded_box, 
+        width=230, 
+        height=35, 
+        show="*", 
+        text_color="black", 
+        font=("Public sans", 12, "bold"), 
+        fg_color="#cdd3df"
+    )
     password_entry.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
     password_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
@@ -136,13 +183,40 @@ def create_login_window():
         pin_entries.append(pin_entry)
         pin_entry.place_forget()
 
-    pin_label = CTkLabel(master=rounded_box, text="Enter Pin Code", text_color="white", font=("Public sans", 13.5, "bold"))
+    pin_label = CTkLabel(
+        master=rounded_box, 
+        text="Enter Pin Code", 
+        text_color="white", 
+        font=("Public sans", 13.5, "bold")
+    )
     pin_label.place_forget()
 
-    login_button = CTkButton(master=rounded_box, text="Login", fg_color="#7BA774", hover_color="#6E9770", text_color="black", corner_radius=8, width=230, height=38, bg_color="#000001", command=on_login)
+    login_button = CTkButton(
+        master=rounded_box, 
+        text="Login", 
+        fg_color="#7BA774", 
+        hover_color="#6E9770", 
+        text_color="black", 
+        corner_radius=8, 
+        width=230, 
+        height=38, 
+        bg_color="#000001", 
+        command=on_login
+    )
     login_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
 
-    submit_pin_button = CTkButton(master=rounded_box, text="Submit", fg_color="#7BA774", hover_color="#6E9770", text_color="black", corner_radius=8, width=230, height=38, bg_color="#000001", command=verify_pin)
+    submit_pin_button = CTkButton(
+        master=rounded_box, 
+        text="Submit", 
+        fg_color="#7BA774", 
+        hover_color="#6E9770", 
+        text_color="black", 
+        corner_radius=8, 
+        width=230, 
+        height=38, 
+        bg_color="#000001", 
+        command=verify_pin
+    )
     submit_pin_button.place_forget()
 
     pywinstyles.set_opacity(login_button, color="#000001")
