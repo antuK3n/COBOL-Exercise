@@ -12,6 +12,7 @@ from login import create_login_window
 step = "login"  # Options: "login", "pin"
 
 def handle_ctrl_backspace(event):
+    # Handle Ctrl+Backspace to delete the previous word
     cursor_pos = event.widget.index(tkinter.INSERT)
     text = event.widget.get()
     left_pos = cursor_pos
@@ -22,6 +23,7 @@ def handle_ctrl_backspace(event):
 def setup_admin_window():
     global step  # Make sure we can access the global step variable
 
+    # Create the main setup window
     setup_app = CTk()
     setup_app.title("Admin Setup")
     setup_app.resizable(False, False)
@@ -40,9 +42,11 @@ def setup_admin_window():
     # Center the window on the screen
     setup_app.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
+    # Create the main frame
     setup_frame = CTkFrame(master=setup_app, fg_color="#141b35")
     setup_frame.pack(fill="both", expand=True)
 
+    # Load and display the logo image
     image_path = Path("Logo.png").resolve()
     if image_path.exists():
         image = CTkImage(Image.open(image_path), size=(800, 800))
@@ -50,6 +54,7 @@ def setup_admin_window():
     else:
         print("Logo image not found!")
 
+    # Create the rounded box for setup inputs
     setup_rounded_box = CTkFrame(
         master=setup_frame, 
         fg_color="#34405a", 
@@ -78,6 +83,7 @@ def setup_admin_window():
 
         return username_valid and password_valid
 
+    # Create and place the title label
     setup_title_label = CTkLabel(
         master=setup_rounded_box, 
         text="OS", 
@@ -86,6 +92,7 @@ def setup_admin_window():
     )
     setup_title_label.place(relx=0.23, rely=0.159, anchor=tkinter.CENTER)
 
+    # Create and place the POS label
     CTkLabel(
         master=setup_rounded_box, 
         text="POS", 
@@ -93,6 +100,7 @@ def setup_admin_window():
         font=("Public sans", 65, "bold")
     ).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
 
+    # Create and place the description label
     CTkLabel(
         master=setup_rounded_box, 
         text="P O I N T  O F  S A L E  S Y S T E M", 
@@ -100,6 +108,7 @@ def setup_admin_window():
         font=("Public sans", 14.8)
     ).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
 
+    # Create and place the username input label
     setup_input_label = CTkLabel(
         master=setup_rounded_box, 
         text="Enter New Username", 
@@ -108,6 +117,7 @@ def setup_admin_window():
     )
     setup_input_label.place(relx=0.34, rely=0.375, anchor=tkinter.CENTER)
 
+    # Create and place the username entry field
     setup_username_entry = CTkEntry(
         master=setup_rounded_box, 
         width=230, 
@@ -121,6 +131,7 @@ def setup_admin_window():
     setup_username_entry.place(relx=0.5, rely=0.465, anchor=tkinter.CENTER)
     setup_username_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
+    # Create and place the password input label
     setup_password_label = CTkLabel(
         master=setup_rounded_box, 
         text="Enter New Password", 
@@ -129,6 +140,7 @@ def setup_admin_window():
     )
     setup_password_label.place(relx=0.34, rely=0.565, anchor=tkinter.CENTER)
 
+    # Create and place the password entry field
     setup_password_entry = CTkEntry(
         master=setup_rounded_box, 
         width=230, 
@@ -145,6 +157,7 @@ def setup_admin_window():
 
     # Define the on_key_release function before it is used
     def on_key_release(event, current_idx):
+        # Handle key release events for PIN entry
         if event.char.isdigit():  # If the key pressed is a digit
             setup_pin_entries[current_idx].delete(0, tkinter.END)
             setup_pin_entries[current_idx].insert(0, event.char)
@@ -158,6 +171,7 @@ def setup_admin_window():
         elif event.keysym == "Return":
             pass  # Add logic here for Return key if needed
 
+    # Create and configure the PIN entry fields
     setup_pin_entries = []  # List to store the pin entry widgets
     for i in range(6):
         setup_pin_entry = CTkEntry(
@@ -167,12 +181,14 @@ def setup_admin_window():
             font=("Public sans", 16, "bold"), 
             fg_color="#cdd3df", 
             justify="center",
-            text_color="black"
+            text_color="black",
+            show="*"
         )
         setup_pin_entry.bind('<KeyRelease>', functools.partial(on_key_release, current_idx=i))
         setup_pin_entries.append(setup_pin_entry)
 
     def show_pin_step():
+        # Show the PIN entry step
         if not check_entries():
             # Display an error message if username or password is invalid
             if not hasattr(show_pin_step, "warning_label"):
@@ -202,6 +218,7 @@ def setup_admin_window():
         pin_label.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
         submit_new_pin_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
     
+    # Create and place the continue button
     setup_button = CTkButton(
         master=setup_rounded_box, 
         text="Continue", 
@@ -283,6 +300,7 @@ def setup_admin_window():
     setup_app.mainloop()
 
 def initialize():
+    # Initialize the setup or login window based on admin setup status
     if not is_admin_setup():
         setup_admin_window()
     else:

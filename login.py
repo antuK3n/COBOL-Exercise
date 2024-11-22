@@ -11,6 +11,7 @@ import functools
 step = "login"  # Options: "login", "pin"
 
 def handle_ctrl_backspace(event):
+    # Handle Ctrl+Backspace to delete the previous word
     cursor_pos = event.widget.index(tkinter.INSERT)
     text = event.widget.get()
     left_pos = cursor_pos
@@ -21,6 +22,7 @@ def handle_ctrl_backspace(event):
 def create_login_window():
     global step  # Track the current step
     
+    # Create the main login window
     login_app = CTk()
     login_app.title("OSPoS")
     login_app.resizable(False, False)
@@ -39,9 +41,11 @@ def create_login_window():
     # Center the window on the screen
     login_app.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
+    # Create the main frame
     frame = CTkFrame(master=login_app, fg_color="#141b35")
     frame.pack(fill="both", expand=True)
 
+    # Load and display the logo image
     image_path = Path("Logo.png").resolve()
     if image_path.exists():
         image = CTkImage(Image.open(image_path), size=(800, 800))
@@ -49,6 +53,7 @@ def create_login_window():
     else:
         print("Logo image not found!")
 
+    # Create the rounded box for login inputs
     rounded_box = CTkFrame(
         master=frame, 
         fg_color="#34405a", 
@@ -61,6 +66,7 @@ def create_login_window():
     pywinstyles.set_opacity(rounded_box, color="#000001")
 
     def on_login():
+        # Handle login button click
         username = username_entry.get()
         password = password_entry.get()
 
@@ -70,6 +76,7 @@ def create_login_window():
             print("Invalid username or password.")
 
     def on_key_release(event, current_idx):
+        # Handle key release events for PIN entry
         if event.char.isdigit():  # If the key pressed is a digit
             pin_entries[current_idx].delete(0, tkinter.END)
             pin_entries[current_idx].insert(0, event.char)
@@ -84,6 +91,7 @@ def create_login_window():
             verify_pin()
 
     def show_pin_step():
+        # Show the PIN entry step
         global step
         step = "pin"
         for widget in [input_label, username_entry, password_label, password_entry, login_button]:
@@ -97,6 +105,7 @@ def create_login_window():
         submit_pin_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
 
     def verify_pin():
+        # Verify the entered PIN
         pin = ''.join(pin_entry.get() for pin_entry in pin_entries)
         if verify_pin_hash(pin):
             login_app.destroy()
@@ -107,6 +116,7 @@ def create_login_window():
                 pin_entry.delete(0, tkinter.END)
             pin_entries[0].focus()  # Set focus to the first pin entry box
 
+    # Create and place the title label
     title_label = CTkLabel(
         master=rounded_box, 
         text="OS", 
@@ -115,6 +125,7 @@ def create_login_window():
     )
     title_label.place(relx=0.23, rely=0.159, anchor=tkinter.CENTER)
 
+    # Create and place the POS label
     CTkLabel(
         master=rounded_box, 
         text="POS", 
@@ -122,6 +133,7 @@ def create_login_window():
         font=("Public sans", 65, "bold")
     ).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
 
+    # Create and place the description label
     CTkLabel(
         master=rounded_box, 
         text="P O I N T  O F  S A L E  S Y S T E M", 
@@ -129,6 +141,7 @@ def create_login_window():
         font=("Public sans", 14.8)
     ).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
 
+    # Create and place the username input label
     input_label = CTkLabel(
         master=rounded_box, 
         text="Username", 
@@ -137,6 +150,7 @@ def create_login_window():
     )
     input_label.place(relx=0.21, rely=0.375, anchor=tkinter.CENTER)
 
+    # Create and place the username entry field
     username_entry = CTkEntry(
         master=rounded_box, 
         width=230, 
@@ -148,6 +162,7 @@ def create_login_window():
     username_entry.place(relx=0.5, rely=0.465, anchor=tkinter.CENTER)
     username_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
+    # Create and place the password input label
     password_label = CTkLabel(
         master=rounded_box, 
         text="Password", 
@@ -156,6 +171,7 @@ def create_login_window():
     )
     password_label.place(relx=0.2, rely=0.565, anchor=tkinter.CENTER)
 
+    # Create and place the password entry field
     password_entry = CTkEntry(
         master=rounded_box, 
         width=230, 
@@ -168,6 +184,7 @@ def create_login_window():
     password_entry.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
     password_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
+    # Create and configure the PIN entry fields
     pin_entries = []
     for i in range(6):
         pin_entry = CTkEntry(
@@ -177,12 +194,14 @@ def create_login_window():
             font=("Public sans", 16, "bold"), 
             fg_color="#cdd3df", 
             justify="center",
-            text_color="black"
+            text_color="black",
+            show="*"
         )
         pin_entry.bind('<KeyRelease>', functools.partial(on_key_release, current_idx=i))
         pin_entries.append(pin_entry)
         pin_entry.place_forget()
 
+    # Create and place the PIN input label
     pin_label = CTkLabel(
         master=rounded_box, 
         text="Enter Pin Code", 
@@ -191,6 +210,7 @@ def create_login_window():
     )
     pin_label.place_forget()
 
+    # Create and place the login button
     login_button = CTkButton(
         master=rounded_box, 
         text="Login", 
@@ -205,6 +225,7 @@ def create_login_window():
     )
     login_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
 
+    # Create and place the submit PIN button
     submit_pin_button = CTkButton(
         master=rounded_box, 
         text="Submit", 
@@ -219,15 +240,18 @@ def create_login_window():
     )
     submit_pin_button.place_forget()
 
+    # Set opacity for buttons
     pywinstyles.set_opacity(login_button, color="#000001")
     pywinstyles.set_opacity(submit_pin_button, color="#000001")
 
     def handle_enter(event):
+        # Handle Enter key press to either login or submit PIN
         if step == "pin":
             verify_pin()
         else:
             on_login()
 
+    # Bind the Enter key to handle_enter function
     login_app.bind('<Return>', handle_enter)
     login_app.mainloop() 
 
