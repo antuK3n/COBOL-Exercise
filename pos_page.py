@@ -1,7 +1,10 @@
 from customtkinter import *
 import tkinter as tk
 from tkinter import messagebox, Canvas, Scrollbar
-from main_database import fetch_products, add_product_to_db
+from main_database import fetch_products, add_product_to_db, update_product_stock_in_db
+import csv
+import os
+
 
 def pos_content(content_frame):
     # Clear existing widgets in the frame
@@ -87,6 +90,7 @@ def pos_content(content_frame):
         card_width = (container_width - ((columns + 1) * padding)) / columns if container_width > 0 else 200
         card_height = 170
 
+        # Clear existing cards
         for widget in cards_frame.winfo_children():
             widget.destroy()
 
@@ -94,97 +98,151 @@ def pos_content(content_frame):
             row = i // columns
             column = i % columns
 
+            # Create product card
             product_card = CTkFrame(cards_frame, fg_color="#e0e0e0", corner_radius=10, width=card_width, height=card_height)
             product_card.grid(row=row, column=column, padx=padding, pady=padding, sticky="nsew")
 
-            product_card.bind("<Enter>", lambda event, card=product_card: card.configure(fg_color="#d3d3d3"))
-            product_card.bind("<Leave>", lambda event, card=product_card: card.configure(fg_color="#e0e0e0"))
-            product_card.bind("<Button-1>", lambda event, product=product: add_to_table(product))
+            # Stock label to dynamically update the stock display
+            stock_label = CTkLabel(product_card, text=f"Available: {product['available']}", font=("Public Sans", 12), text_color="gray")
+            stock_label.place(relx=0.05, rely=0.6, anchor="w")
 
+            # Bind click event to handle product click
+            product_card.bind(
+                "<Button-1>",
+                lambda event, p=product.copy(), label=stock_label: handle_product_click(p, label)
+            )
+
+            # Other product details on the card
             CTkLabel(product_card, text=product["name"], font=("Public Sans", 14, "bold"), text_color="black").place(relx=0.05, rely=0.2, anchor="w")
             CTkLabel(product_card, text=f"Code: {product['code']}", font=("Public Sans", 12), text_color="gray").place(relx=0.05, rely=0.4, anchor="w")
-            CTkLabel(product_card, text=f"Available: {product['available']}", font=("Public Sans", 12), text_color="gray").place(relx=0.05, rely=0.6, anchor="w")
             CTkLabel(product_card, text=f"₱ {product['price']:.2f}", font=("Public Sans", 12, "bold"), text_color="green").place(relx=0.05, rely=0.8, anchor="w")
 
-                # Add "Add Product" card
+        # Add "Add Product" card
         add_card = CTkFrame(cards_frame, fg_color="#e0e0e0", corner_radius=10, width=card_width, height=card_height)
 
         if not products:
-            # If no products, add the card to the first position
             row, column = 0, 0
         else:
-            # Add "Add Product" card after the last product
             row = len(products) // columns
             column = len(products) % columns
 
         add_card.grid(row=row, column=column, padx=padding, pady=padding, sticky="nsew")
 
-        # Add "Add" button to the "Add Product" card
         CTkLabel(add_card, text="Add Product", font=("Public Sans", 12, "bold"), text_color="black").place(relx=0.5, rely=0.4, anchor="center")
-        CTkButton(add_card, text="Add", text_color="white", fg_color="#141b35", hover_color="#1d2847", command=open_add_product_popup).place(relx=0.5, rely=0.7, anchor="center")
+        CTkButton(add_card, text="Add", text_color="white", fg_color="#141b35", hover_color="#1d2847", command=open_add_product).place(relx=0.5, rely=0.7, anchor="center")
 
         update_scroll_region()
         canvas.update_idletasks()
 
-        # Open Add Product popup
-    def open_add_product_popup():
-        popup = CTkToplevel()
-        popup.title("Add Product")
-        popup.geometry("400x300")
+    def handle_product_click(product, stock_label):
+        # First, deduct the stock
+        if product["available"] > 0:
+            # Deduct the quantity
+            product["available"] -= 1
+            
+            # Update the stock label immediately to reflect the new stock
+            stock_label.configure(text=f"Available: {product['available']}")
+            
+            # Update the product stock in the database
+            update_product_stock_in_db(product)
+            
+            # Add the product to the table after stock deduction
+            add_to_table(product)
 
-        popup.attributes("-topmost", True)
-
-        # Input fields for product details
-        CTkLabel(popup, text="Product Name:").pack(pady=(20, 5))
-        name_entry = CTkEntry(popup, width=250)
-        name_entry.pack()
-
-        CTkLabel(popup, text="Quantity:").pack(pady=(10, 5))
-        quantity_entry = CTkEntry(popup, width=250)
-        quantity_entry.pack()
-
-        CTkLabel(popup, text="Price (₱):").pack(pady=(10, 5))
-        price_entry = CTkEntry(popup, width=250)
-        price_entry.pack()
-
-        # Save button to add product
-        def save_product():
-            name = name_entry.get()
-            quantity = quantity_entry.get()
-            price = price_entry.get()
-
-            if not name or not quantity or not price:
-                messagebox.showerror("Error", "All fields are required!")
-                return
-
-            try:
-                quantity = int(quantity)
-                price = float(price)
-            except ValueError:
-                messagebox.showerror("Error", "Quantity must be an integer and Price must be a number!")
-                return
-
-            # Add product to database
-            code = f"P{len(fetch_products()) + 1:03}"  # Generate product code
-            add_product_to_db(name, code, quantity, price)
-
-            # Update product cards
+            # Re-render the product cards to reflect the updated stock
             create_product_cards()
 
-            popup.destroy()
+            # Check if the product is now out of stock
+            if product["available"] == 0:
+                display_out_of_stock_message()
 
-        CTkButton(popup, text="Save", command=save_product).pack(pady=(20, 5))
+        else:
+            # If product is already out of stock, just show the message
+            display_out_of_stock_message()
+
+    def display_out_of_stock_message():
+        # This function displays a message that the product is out of stock.
+        messagebox.showerror("Out of Stock", "Sorry, this product is out of stock!")
+
+    def run_cobol_and_process_csv(csv_path):
+        """
+        Processes a CSV file where each product is represented as:
+        - Row 1: Product Name
+        - Row 2: Quantity (QTY)
+        - Row 3: Unit Price
+        Followed by an empty line before the next set.
+
+        Parameters:
+            csv_path (str): Path to the CSV file generated by the COBOL program.
+        """
+        try:
+            # Step 1: Check if CSV file exists
+            if not os.path.exists(csv_path):
+                print(f"CSV file not found: {csv_path}")
+                return
+
+            # Step 2: Open and read the CSV file
+            with open(csv_path, mode='r', encoding='utf-8') as csv_file:
+                csv_reader = csv.reader(csv_file)
+                lines = [line for line in csv_reader if any(line)]  # Remove empty rows
+                
+                # Step 3: Process rows in sets of 3 (Product Name, QTY, Unit Price)
+                i = 0
+                while i < len(lines):
+                    try:
+                        product_name = lines[i][0].strip()  # Row 1: Product name
+                        quantity = int(lines[i + 1][0].strip())  # Row 2: Quantity
+                        price = float(lines[i + 2][0].strip())  # Row 3: Unit price
+
+                        # Generate product code dynamically
+                        code = f"P{len(fetch_products()) + 1:03}"
+
+                        # Add product to the database
+                        add_product_to_db(product_name, code, quantity, price)
+                        create_product_cards()
+
+                        print(f"Added product: {product_name}, QTY: {quantity}, Price: {price}")
+                        i += 3  # Move to the next set of rows
+                    except (IndexError, ValueError) as e:
+                        print(f"Skipping invalid row set starting at line {i+1}: {e}")
+                        i += 1  # Skip to the next row if an error occurs
+            
+            # Step 4: Clear the contents of the CSV file after processing
+            with open(csv_path, 'w', newline='', encoding='utf-8') as file:
+                pass  # Opening in 'w' mode clears the contents of the file
+
+            print(f"CSV file cleared: {csv_path}")
+
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+
+
+    def open_add_product():
+        """
+        Processes the CSV directly, without running the COBOL executable.
+        """
+        # Hardcoded path for the CSV file
+        csv_path = r"C:\Users\Cyrus\Desktop\Python COBOL Proj\PRODUCTS.CSV"  # Updated path to the generated CSV file
+        
+        # Process the CSV
+        run_cobol_and_process_csv(csv_path)
+        
+        # Clear the contents of the CSV file
+        with open(csv_path, 'w', newline='') as file:
+            pass  # Opening in 'w' mode clears the contents of the file
+
+
 
     current_row_index = [1]  # Row index starts at 1
 
     def add_to_table(product):
         nonlocal current_row_index
 
-        # Get the current_row_index by referencing the list
+        # Get the current row index
         current_row = current_row_index[0]
 
         # Check if the product is already in the cart
-        for i in range(1, current_row):  # Start from 1 to skip header row
+        for i in range(1, current_row):  # Start from 1 to skip the header row
             existing_name = item_table.grid_slaves(row=i, column=0)
             if existing_name and existing_name[0].cget("text") == product["name"]:
                 # Product already exists, update quantity and subtotal
@@ -199,14 +257,7 @@ def pos_content(content_frame):
                 update_totals()  # Recalculate totals after updating the table
                 return
 
-        # Fixed row count - prevent it from growing beyond a certain number of rows
-        MAX_ROWS = 11  # Adjust this based on how many rows you want to display initially
-
-        if current_row >= MAX_ROWS:
-            messagebox.showinfo("Info", "The cart is full.")
-            return
-
-        # Add product to the table (if it's not in the cart already)
+        # If the product is not in the cart, add it to the table
         item_name = CTkLabel(item_table, text=product["name"], font=("Public Sans", 16), text_color="black", anchor="center")
         item_name.grid(row=current_row, column=0, padx=10, pady=5, sticky="nsew")
 
@@ -220,9 +271,9 @@ def pos_content(content_frame):
         subtotal.grid(row=current_row, column=3, padx=10, pady=5, sticky="nsew")
 
         # Ensure the rows are spaced equally and added in a top-down order
-        item_table.grid_rowconfigure(current_row, weight=0)  # Rows will not stretch, and the content will stack top to bottom
+        item_table.grid_rowconfigure(current_row, weight=0)  # Rows will not stretch
 
-        # Increment the current row index stored in the list
+        # Increment the current row index
         current_row_index[0] += 1
 
         # Update totals after adding a new product
@@ -263,7 +314,7 @@ def pos_content(content_frame):
     discount_value_label = CTkLabel(subtotal_frame, text="₱ 0.00", font=("Public Sans", 18), text_color="black", anchor="e")
     discount_value_label.place(relx=0.95, rely=0.3, anchor="e")
 
-    tax_text_label = CTkLabel(subtotal_frame, text="Tax (12%):", font=("Public Sans", 18), text_color="black", anchor="w")
+    tax_text_label = CTkLabel(subtotal_frame, text="Tax:", font=("Public Sans", 18), text_color="black", anchor="w")
     tax_text_label.place(relx=0.05, rely=0.5, anchor="w")
 
     tax_value_label = CTkLabel(subtotal_frame, text="₱ 0.00", font=("Public Sans", 18), text_color="black", anchor="e")
@@ -280,9 +331,12 @@ def pos_content(content_frame):
     total_value_label = CTkLabel(subtotal_frame, text="₱ 0.00", font=("Public Sans", 18, "bold"), text_color="black", anchor="e")
     total_value_label.place(relx=0.95, rely=0.90, anchor="e")
 
-    # Define function to calculate totals
+    # Global variables for discount and tax rates
+    discount_rate = 0.0  # Default 0% discount
+    tax_rate = 0.12      # Default 12% tax rate
+
     def update_totals():
-        subtotal = 0
+        subtotal = 0.0
 
         # Iterate through rows in the table to sum up subtotals
         for i in range(1, current_row_index[0]):  # Skip header row
@@ -292,34 +346,267 @@ def pos_content(content_frame):
 
             if qty_widget and price_widget:  # If both widgets exist
                 try:
-                    qty = int(qty_widget[0].cget("text"))  # Get quantity value
-                    price = float(price_widget[0].cget("text").replace("₱", "").strip())  # Get price value
-                    subtotal += qty * price  # Calculate subtotal for this row
-                except ValueError:
-                    pass  # Skip rows with invalid data
+                    # Safely extract quantity and price
+                    qty = int(qty_widget[0].cget("text"))
+                    # Remove currency symbol, strip whitespace, and convert to float
+                    price_str = price_widget[0].cget("text")
+                    price = float(price_str.replace("₱", "").replace(",", "").strip())
+                    
+                    row_subtotal = qty * price  # Calculate subtotal for this row
+                    subtotal += row_subtotal  # Add to overall subtotal
+                except (ValueError, AttributeError):
+                    print(f"Error processing row {i}: Invalid quantity or price")
+                    continue
 
-        # Calculate other totals
-        discount = 0  # You can implement discounts based on conditions if needed
-        tax = subtotal * 0.12  # 12% tax
+        # Calculate other totals based on updated discount and tax rates
+        discount = subtotal * discount_rate
+        tax = subtotal * tax_rate
         total = subtotal + tax - discount
 
-        # Update labels
-        subtotal_value_label.configure(text=f"₱ {subtotal:.2f}")
-        discount_value_label.configure(text=f"₱ {discount:.2f}")
-        tax_value_label.configure(text=f"₱ {tax:.2f}")
-        total_value_label.configure(text=f"₱ {total:.2f}")
+        # Update labels to reflect the calculated values
+        # Use thousands separator for better readability
+        subtotal_value_label.configure(text=f"₱ {subtotal:,.2f}")
+        discount_value_label.configure(text=f"₱ {discount:,.2f}")
+        tax_value_label.configure(text=f"₱ {tax:,.2f}")
+        total_value_label.configure(text=f"₱ {total:,.2f}")
+
+    def open_discount_popup():
+        def set_discount():
+            nonlocal discount_rate
+            try:
+                # Get the discount percentage from the entry widget
+                entered_discount = discount_entry.get()
+                if entered_discount:  # Only update if input is not empty
+                    # Convert to decimal (divide by 100)
+                    discount_rate = float(entered_discount) / 100
+                else:
+                    discount_rate = 0.0  # No discount if no input is provided
+                
+                discount_popup.destroy()  # Close the popup window
+                update_totals()  # Recalculate and update totals
+            except ValueError:
+                # Create custom error popup
+                error_popup = CTkToplevel(discount_popup)
+                error_popup.title("Invalid Input")
+                error_popup.geometry("300x200")
+                
+                # Error message label
+                error_label = CTkLabel(
+                    error_popup, 
+                    text="Please enter a valid\nnumeric value for discount.", 
+                    font=("Public Sans", 14)
+                )
+                error_label.pack(expand=True, pady=20)
+                
+                # OK button to close the error popup
+                def close_error():
+                    error_popup.destroy()
+                
+                ok_button = CTkButton(
+                    error_popup, 
+                    text="OK", 
+                    font=("Public Sans", 14), 
+                    command=close_error
+                )
+                ok_button.pack(pady=20)
+                
+                # Make error popup modal
+                error_popup.grab_set()
+                error_popup.focus()
+
+        # Create the popup window
+        discount_popup = CTkToplevel()
+        discount_popup.title("Set Discount")
+        discount_popup.geometry("300x200")  # Set a reasonable size
+        
+        # Label and entry for discount percentage
+        discount_label = CTkLabel(discount_popup, text="Enter Discount Percentage:", font=("Public Sans", 14))
+        discount_label.pack(padx=20, pady=10)
+
+        discount_entry = CTkEntry(
+            discount_popup, 
+            font=("Public Sans", 14), 
+            placeholder_text="Enter Discount (%)"
+        )
+        discount_entry.pack(padx=20, pady=10)
+        discount_entry.focus()  # Set focus to the entry widget
+
+        # Submit button to set the discount
+        submit_button = CTkButton(
+            discount_popup, 
+            text="Set Discount", 
+            font=("Public Sans", 14), 
+            command=set_discount
+        )
+        submit_button.pack(padx=20, pady=20)
+
+    def open_tax_popup():
+        def set_tax():
+            nonlocal tax_rate
+            try:
+                # Get the tax percentage from the entry widget
+                entered_tax = tax_entry.get()
+                if entered_tax:  # Only update if input is not empty
+                    # Convert to decimal (divide by 100)
+                    tax_rate = float(entered_tax) / 100
+                else:
+                    tax_rate = 0.12  # Default tax rate
+                
+                tax_popup.destroy()  # Close the popup window
+                update_totals()  # Recalculate and update totals
+            except ValueError:
+                # Create custom error popup
+                error_popup = CTkToplevel(tax_popup)
+                error_popup.title("Invalid Input")
+                error_popup.geometry("300x200")
+                
+                # Error message label
+                error_label = CTkLabel(
+                    error_popup, 
+                    text="Please enter a valid\nnumeric value for tax.", 
+                    font=("Public Sans", 14)
+                )
+                error_label.pack(expand=True, pady=20)
+                
+                # OK button to close the error popup
+                def close_error():
+                    error_popup.destroy()
+                
+                ok_button = CTkButton(
+                    error_popup, 
+                    text="OK", 
+                    font=("Public Sans", 14), 
+                    command=close_error
+                )
+                ok_button.pack(pady=20)
+                
+                # Make error popup modal
+                error_popup.grab_set()
+                error_popup.focus()
+
+        # Create the popup window
+        tax_popup = CTkToplevel()
+        tax_popup.title("Set Tax")
+        tax_popup.geometry("300x200")  # Set a reasonable size
+        
+        # Label and entry for tax percentage
+        tax_label = CTkLabel(tax_popup, text="Enter Tax Percentage:", font=("Public Sans", 14))
+        tax_label.pack(padx=20, pady=10)
+
+        tax_entry = CTkEntry(
+            tax_popup, 
+            font=("Public Sans", 14), 
+            placeholder_text="Enter Tax (%)"
+        )
+        tax_entry.pack(padx=20, pady=10)
+        tax_entry.focus()  # Set focus to the entry widget
+
+        # Submit button to set the tax
+        submit_button = CTkButton(
+            tax_popup, 
+            text="Set Tax", 
+            font=("Public Sans", 14), 
+            command=set_tax
+        )
+        submit_button.pack(padx=20, pady=20)
 
     # Discount Button
-    discount_button = CTkButton(calculator_frame, text="Discount", font=("Public Sans", 16), text_color="white", fg_color="#141b35", hover_color="#1d2847", corner_radius=10)
+    discount_button = CTkButton(
+        calculator_frame,
+        text="Discount",
+        font=("Public Sans", 16),
+        text_color="white",
+        fg_color="#141b35",
+        hover_color="#1d2847",
+        corner_radius=10,
+        command=open_discount_popup  # Open discount popup when button is clicked
+    )
     discount_button.place(relx=0.97, rely=0.745, anchor="e", relwidth=0.4, relheight=0.05)
 
     # Tax Button
-    tax_button = CTkButton(calculator_frame, text="Tax", font=("Public Sans", 16), text_color="white", fg_color="#141b35", hover_color="#1d2847", corner_radius=10)
+    tax_button = CTkButton(
+        calculator_frame,
+        text="Tax",
+        font=("Public Sans", 16),
+        text_color="white",
+        fg_color="#141b35",
+        hover_color="#1d2847",
+        corner_radius=10,
+        command=open_tax_popup  # Open tax popup when button is clicked
+    )
     tax_button.place(relx=0.97, rely=0.82, anchor="e", relwidth=0.4, relheight=0.05)
 
+    # Function to clear the table and reset labels
+    def clear_table():
+        # Clear the table rows
+        for i in range(1, current_row_index[0]):  # Start from 1 to skip the header row
+            for widget in item_table.grid_slaves(row=i):  # Get all widgets in the row
+                widget.destroy()
+
+        # Reset the subtotal, discount, tax, and total labels to their default values
+        subtotal_value_label.configure(text="₱ 0.00")
+        discount_value_label.configure(text="₱ 0.00")
+        tax_value_label.configure(text="₱ 0.00")
+        total_value_label.configure(text="₱ 0.00")
+
+    def export_to_csv():
+        # Open the CSV file for writing with UTF-8 encoding
+        with open('RECEIPT.csv', mode='w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+
+            # Loop through all the rows in the table (starting from row 1 to skip header)
+            for i in range(1, current_row_index[0]):  # Skipping header row
+                # Extract widgets from each column
+                item_name_widget = item_table.grid_slaves(row=i, column=0)  # Product Name
+                qty_widget = item_table.grid_slaves(row=i, column=1)        # Quantity
+                price_widget = item_table.grid_slaves(row=i, column=2)      # Price
+                subtotal_widget = item_table.grid_slaves(row=i, column=3)   # Subtotal
+
+                # Check if widgets exist for that row
+                if item_name_widget and qty_widget and price_widget and subtotal_widget:
+                    product_name = item_name_widget[0].cget("text")  # Product name
+                    quantity = qty_widget[0].cget("text")  # Quantity
+                    price = price_widget[0].cget("text")  # Price
+                    subtotal = subtotal_widget[0].cget("text")  # Subtotal
+
+                    # Write the data to the CSV file in the desired format (single row for item)
+                    writer.writerow([product_name, quantity, price, subtotal])
+
+            # Extract totals from the labels
+            subtotal_total = subtotal_value_label.cget("text")  # Get text of subtotal label
+            discount_total = discount_value_label.cget("text")  # Get text of discount label
+            tax_total = tax_value_label.cget("text")  # Get text of tax label
+            total = total_value_label.cget("text")  # Get text of total label
+
+            # Write totals to the CSV file
+            writer.writerow(["Subtotal", "", "", subtotal_total])
+            writer.writerow(["Discount", "", "", discount_total])
+            writer.writerow(["Tax", "", "", tax_total])
+            writer.writerow(["Grand Total", "", "", total])
+
+        print("Receipt exported to RECEIPT.csv")
+
+    def on_payment_click():
+        # Export the data to CSV before clearing the table
+        export_to_csv()
+
+        # Clear the table 
+        clear_table()
+
+        # Optionally, show a message confirming that the receipt has been saved
+        messagebox.showinfo("Payment", "Receipt has been saved to RECEIPT.csv")
+
     # Payment Button (Green)
-    payment_button = CTkButton(calculator_frame, text="Payment", font=("Public Sans", 16), text_color="white", fg_color="#4CAF50", hover_color="#45a049", corner_radius=10)
+    payment_button = CTkButton(
+        calculator_frame,  # Assuming calculator_frame is already defined
+        text="Payment",
+        font=("Public Sans", 16),
+        text_color="white",
+        fg_color="#4CAF50",
+        hover_color="#45a049",
+        corner_radius=10,
+        command=on_payment_click  # Bind the click event to the function
+    )
     payment_button.place(relx=0.97, rely=0.95, anchor="e", relwidth=0.4, relheight=0.05)
-    
 
     create_product_cards()

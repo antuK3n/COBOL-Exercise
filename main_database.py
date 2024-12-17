@@ -43,6 +43,15 @@ def fetch_products():
 
     return product_list
 
+# Update product quantity in the database
+def update_product_stock_in_db(product):
+    # Update the stock in the database
+    connection = sqlite3.connect(DB_ADMIN)
+    cursor = connection.cursor()
+    cursor.execute("UPDATE products SET available = ? WHERE id = ?", (product["available"], product["id"]))
+    connection.commit()
+    connection.close()
+
 
 # Add a new product to the database
 def add_product_to_db(name, code, available, price):
