@@ -221,9 +221,12 @@ def pos_content(content_frame):
         """
         Processes the CSV directly, without running the COBOL executable.
         """
-        # Hardcoded path for the CSV file
-        csv_path = r"C:\Users\Cyrus\Desktop\Python COBOL Proj\PRODUCTS.CSV"  # Updated path to the generated CSV file
-        
+        # Get the current script directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Construct the path to the CSV file in the 'cobol' folder
+        csv_path = os.path.join(current_dir, 'PRODUCTS.CSV')
+
         # Process the CSV
         run_cobol_and_process_csv(csv_path)
         
