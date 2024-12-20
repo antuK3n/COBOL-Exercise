@@ -1,27 +1,90 @@
+import csv
+import sqlite3
+import hashlib
 from pathlib import Path
 from customtkinter import *
 import tkinter
 from PIL import Image
 import pywinstyles
-from user_database import verify_login, verify_pin_hash
-from main import create_main_window
 import functools
+
+# Database file
+DB_ADMIN = "app_data.db"
 
 # Global variable to track which step we are in (login or pin)
 step = "login"  # Options: "login", "pin"
 
-def handle_ctrl_backspace(event):
-    # Handle Ctrl+Backspace to delete the previous word
-    cursor_pos = event.widget.index(tkinter.INSERT)
-    text = event.widget.get()
-    left_pos = cursor_pos
-    while left_pos > 0 and not text[left_pos - 1].isspace():
-        left_pos -= 1
-    event.widget.delete(left_pos, cursor_pos)
+def initialize_db():
+    """Initialize the SQLite database."""
+    try:
+        with sqlite3.connect(DB_ADMIN) as conn:
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS admin (
+                            username TEXT UNIQUE,
+                            password_hash TEXT,
+                            pin_hash TEXT,
+                            plaintext_password TEXT,
+                            plaintext_pin TEXT,
+                            profile_image_path TEXT
+                        )''')
+            conn.commit()
+            print("Database initialized.")
+    except sqlite3.Error as e:
+        print(f"Error initializing the database: {e}")
+
+def verify_csv_credentials(username, password):
+    """Verify username and password against the CSV file."""
+    try:
+        with open("USERS.csv", "r") as csv_file:
+            csv_reader = csv.reader(csv_file)
+            rows = list(csv_reader)
+
+            # CSV format: name, password, pin, full_name, email, contact (row by row)
+            for i in range(0, len(rows), 6):
+                csv_username = rows[i][0] if len(rows[i]) > 0 else None
+                csv_password = rows[i+1][0] if len(rows[i+1]) > 0 else None
+                csv_pin = rows[i+2][0] if len(rows[i+2]) > 0 else "000000"
+
+                if username == csv_username and password == csv_password:
+                    return True, {"username": csv_username, "password": csv_password, "pin": csv_pin}
+        return False, None
+    except FileNotFoundError:
+        print("USERS.csv file not found!")
+        return False, None
+
+def setup_admin(username, password, pin):
+    """Add an admin to the SQLite database."""
+    try:
+        with sqlite3.connect(DB_ADMIN) as conn:
+            c = conn.cursor()
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            hashed_pin = hashlib.sha256(pin.encode()).hexdigest()
+            c.execute("INSERT INTO admin (username, password_hash, pin_hash, plaintext_password, plaintext_pin) VALUES (?, ?, ?, ?, ?)",
+                      (username, hashed_password, hashed_pin, password, pin))
+            conn.commit()
+            print("Admin credentials added to the database.")
+    except sqlite3.IntegrityError:
+        print("User already exists in the database.")
+    except sqlite3.Error as e:
+        print(f"Error adding admin: {e}")
+
+def verify_pin_hash(input_pin):
+    """Verify the PIN during the second step."""
+    hashed_pin = hashlib.sha256(input_pin.encode()).hexdigest()
+    try:
+        with sqlite3.connect(DB_ADMIN) as conn:
+            c = conn.cursor()
+            c.execute("SELECT * FROM admin WHERE pin_hash = ?", (hashed_pin,))
+            result = c.fetchone()
+            return result is not None
+    except sqlite3.Error as e:
+        print(f"Error verifying PIN: {e}")
+        return False
 
 def create_login_window():
-    global step  # Track the current step
-    
+    """Create the login window using customtkinter."""
+    global step
+
     # Create the main login window
     login_app = CTk()
     login_app.title("OSPoS")
@@ -45,6 +108,15 @@ def create_login_window():
     frame = CTkFrame(master=login_app, fg_color="#141b35")
     frame.pack(fill="both", expand=True)
 
+    # Add the title label (OSPoS)
+    title_label = CTkLabel(
+        master=frame,
+        text="OSPoS",
+        font=("Work Sans", 24, "bold"),
+        text_color="white"
+    )
+    title_label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
+
     # Load and display the logo image
     image_path = Path("Logo.png").resolve()
     if image_path.exists():
@@ -60,43 +132,28 @@ def create_login_window():
         corner_radius=20, 
         width=280, 
         height=320, 
-        bg_color="#000001"
     )
     rounded_box.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
-    pywinstyles.set_opacity(rounded_box, color="#000001")
 
     def on_login():
-        # Handle login button click
         username = username_entry.get()
         password = password_entry.get()
 
-        if verify_login(username, password):
+        # Check if the credentials match in the CSV
+        is_valid_csv, csv_data = verify_csv_credentials(username, password)
+        if is_valid_csv:
+            print("User verified in CSV. Adding to database.")
+            setup_admin(csv_data["username"], csv_data["password"], csv_data["pin"])
             show_pin_step()
         else:
             print("Invalid username or password.")
 
-    def on_key_release(event, current_idx):
-        # Handle key release events for PIN entry
-        if event.char.isdigit():  # If the key pressed is a digit
-            pin_entries[current_idx].delete(0, tkinter.END)
-            pin_entries[current_idx].insert(0, event.char)
-            if current_idx < len(pin_entries) - 1:
-                pin_entries[current_idx + 1].focus_set()
-        elif event.keysym == "BackSpace":
-            if pin_entries[current_idx].get() == '' and current_idx > 0:
-                pin_entries[current_idx - 1].focus_set()
-            else:
-                pin_entries[current_idx].delete(0, tkinter.END)
-        elif event.keysym == "Return":
-            verify_pin()
-
     def show_pin_step():
-        # Show the PIN entry step
         global step
         step = "pin"
         for widget in [input_label, username_entry, password_label, password_entry, login_button]:
             widget.place_forget()
-        
+
         for i, pin_entry in enumerate(pin_entries):
             pin_entry.place(relx=0.17 + (i * 0.133), rely=0.5, anchor=tkinter.CENTER)
 
@@ -105,156 +162,50 @@ def create_login_window():
         submit_pin_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
 
     def verify_pin():
-        # Verify the entered PIN
         pin = ''.join(pin_entry.get() for pin_entry in pin_entries)
         if verify_pin_hash(pin):
+            print("PIN verified successfully.")
             login_app.destroy()
-            create_main_window()  # Proceed to the main window
         else:
-            # Clear all pin entry fields and reset focus to the first field
+            print("Invalid PIN.")
             for pin_entry in pin_entries:
                 pin_entry.delete(0, tkinter.END)
-            pin_entries[0].focus()  # Set focus to the first pin entry box
+            pin_entries[0].focus()
 
-    # Create and place the title label
-    title_label = CTkLabel(
-        master=rounded_box, 
-        text="OS", 
-        text_color="white", 
-        font=("Work sans", 70, "italic")
-    )
-    title_label.place(relx=0.23, rely=0.159, anchor=tkinter.CENTER)
-
-    # Create and place the POS label
-    CTkLabel(
-        master=rounded_box, 
-        text="POS", 
-        text_color="white", 
-        font=("Public sans", 65, "bold")
-    ).place(relx=0.66, rely=0.15, anchor=tkinter.CENTER)
-
-    # Create and place the description label
-    CTkLabel(
-        master=rounded_box, 
-        text="P O I N T  O F  S A L E  S Y S T E M", 
-        text_color="white", 
-        font=("Public sans", 14.8)
-    ).place(relx=0.49, rely=0.3, anchor=tkinter.CENTER)
-
-    # Create and place the username input label
-    input_label = CTkLabel(
-        master=rounded_box, 
-        text="Username", 
-        text_color="white", 
-        font=("Public sans", 13.5, "bold")
-    )
+    # Username label and entry
+    input_label = CTkLabel(master=rounded_box, text="Username", text_color="white", font=("Public sans", 13.5, "bold"))
     input_label.place(relx=0.21, rely=0.375, anchor=tkinter.CENTER)
 
-    # Create and place the username entry field
-    username_entry = CTkEntry(
-        master=rounded_box, 
-        width=230, 
-        height=35, 
-        text_color="black", 
-        font=("Public sans", 12, "bold"), 
-        fg_color="#cdd3df"
-    )
+    username_entry = CTkEntry(master=rounded_box, width=230, height=35, text_color="black", fg_color="#cdd3df")
     username_entry.place(relx=0.5, rely=0.465, anchor=tkinter.CENTER)
-    username_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
-    # Create and place the password input label
-    password_label = CTkLabel(
-        master=rounded_box, 
-        text="Password", 
-        text_color="white", 
-        font=("Public sans", 13.5, "bold")
-    )
+    # Password label and entry
+    password_label = CTkLabel(master=rounded_box, text="Password", text_color="white", font=("Public sans", 13.5, "bold"))
     password_label.place(relx=0.2, rely=0.565, anchor=tkinter.CENTER)
 
-    # Create and place the password entry field
-    password_entry = CTkEntry(
-        master=rounded_box, 
-        width=230, 
-        height=35, 
-        show="*", 
-        text_color="black", 
-        font=("Public sans", 12, "bold"), 
-        fg_color="#cdd3df"
-    )
+    password_entry = CTkEntry(master=rounded_box, width=230, height=35, show="*", text_color="black", fg_color="#cdd3df")
     password_entry.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
-    password_entry.bind('<Control-BackSpace>', handle_ctrl_backspace)
 
-    # Create and configure the PIN entry fields
+    # Login button
+    login_button = CTkButton(master=rounded_box, text="Login", command=on_login, fg_color="#7BA774", hover_color="#6E9770")
+    login_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
+
+    # PIN entry fields
     pin_entries = []
     for i in range(6):
-        pin_entry = CTkEntry(
-            master=rounded_box, 
-            width=35, 
-            height=35, 
-            font=("Public sans", 16, "bold"), 
-            fg_color="#cdd3df", 
-            justify="center",
-            text_color="black",
-            show="*"
-        )
-        pin_entry.bind('<KeyRelease>', functools.partial(on_key_release, current_idx=i))
+        pin_entry = CTkEntry(master=rounded_box, width=35, height=35, text_color="black", justify="center", fg_color="#cdd3df")
         pin_entries.append(pin_entry)
         pin_entry.place_forget()
 
-    # Create and place the PIN input label
-    pin_label = CTkLabel(
-        master=rounded_box, 
-        text="Enter Pin Code", 
-        text_color="white", 
-        font=("Public sans", 13.5, "bold")
-    )
+    # PIN label and submit button
+    pin_label = CTkLabel(master=rounded_box, text="Enter Pin Code", text_color="white", font=("Public sans", 13.5, "bold"))
     pin_label.place_forget()
 
-    # Create and place the login button
-    login_button = CTkButton(
-        master=rounded_box, 
-        text="Login", 
-        fg_color="#7BA774", 
-        hover_color="#6E9770", 
-        text_color="black", 
-        corner_radius=8, 
-        width=230, 
-        height=38, 
-        bg_color="#000001", 
-        command=on_login
-    )
-    login_button.place(relx=0.5, rely=0.87, anchor=tkinter.CENTER)
-
-    # Create and place the submit PIN button
-    submit_pin_button = CTkButton(
-        master=rounded_box, 
-        text="Submit", 
-        fg_color="#7BA774", 
-        hover_color="#6E9770", 
-        text_color="black", 
-        corner_radius=8, 
-        width=230, 
-        height=38, 
-        bg_color="#000001", 
-        command=verify_pin
-    )
+    submit_pin_button = CTkButton(master=rounded_box, text="Submit", command=verify_pin, fg_color="#7BA774", hover_color="#6E9770")
     submit_pin_button.place_forget()
 
-    # Set opacity for buttons
-    pywinstyles.set_opacity(login_button, color="#000001")
-    pywinstyles.set_opacity(submit_pin_button, color="#000001")
+    login_app.mainloop()
 
-    def handle_enter(event):
-        # Handle Enter key press to either login or submit PIN
-        if step == "pin":
-            verify_pin()
-        else:
-            on_login()
-
-    # Bind the Enter key to handle_enter function
-    login_app.bind('<Return>', handle_enter)
-    login_app.mainloop() 
-
-# Example usage (assuming this code is in a file named "main.py")
 if __name__ == "__main__":
+    initialize_db()
     create_login_window()
