@@ -353,8 +353,7 @@ def profile_content(content_frame):
 
 
     def update_profile_picture(event):
-        global profile_image_label  # Ensure global reference for accessibility
-
+        """Update the profile picture when clicked."""
         file_path = filedialog.askopenfilename(
             filetypes=[("Image files", "*.png *.jpg *.jpeg *.gif *.bmp")]
         )
@@ -364,46 +363,28 @@ def profile_content(content_frame):
                 img = Image.open(file_path).convert('RGB')
                 img.thumbnail((150, 150))
 
-                # Create an RGBA image with a transparent background
-                background = Image.new('RGBA', (150, 150), (0, 0, 0, 0))  # Fully transparent background
+                background = Image.new('RGBA', (150, 150), (0, 0, 0, 0))
                 offset = ((150 - img.width) // 2, (150 - img.height) // 2)
                 background.paste(img, offset)
 
-                # Create a circular mask
                 mask = Image.new('L', (150, 150), 0)
                 draw = ImageDraw.Draw(mask)
-                draw.ellipse((0, 0, 150, 150), fill=255)  # White circle for mask
+                draw.ellipse((0, 0, 150, 150), fill=255)
 
-                # Composite the image with the circular mask to keep only the circle
                 output = Image.composite(background, Image.new('RGBA', (150, 150), (0, 0, 0, 0)), mask)
 
-                # Convert to CTkImage for customtkinter label usage
+                # Convert to CTkImage for display
                 photo = CTkImage(light_image=output, dark_image=output, size=(150, 150))
 
-                # Update profile_image_label with the circular photo
+                # Save the profile image to the database
+                save_profile_image_to_db(user_data['username'], file_path)
+
+                # Update the profile image label
                 profile_image_label.configure(image=photo)
-                profile_image_label.image = photo  # Keep reference
+                profile_image_label.image = photo  # Keep reference to avoid garbage collection
+
             except Exception as e:
-                print(f"Error loading image: {e}")
-                # Set default circular image placeholder on error
-                photo = create_circular_image()
-                profile_image_label.configure(image=photo)
-                profile_image_label.image = photo
-
-        profile_image_label.configure(cursor="hand2")
-
-        # Define profile_image_label before its first usage
-        initial_photo = create_circular_image()
-        profile_image_label = CTkLabel(
-            content_frame,
-            image=initial_photo,
-            text=""
-        )
-        profile_image_label.image = initial_photo
-        profile_image_label.place(relx=0.07, rely=0.22, anchor=tkinter.CENTER)
-
-        # Bind update_profile_picture function
-        profile_image_label.bind("<Button-1>", update_profile_picture)
+                print(f"Error updating profile picture: {e}")
 
     def load_and_display_profile_image():
         """Load the profile image from the database and display it."""
