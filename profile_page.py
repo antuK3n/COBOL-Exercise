@@ -16,7 +16,7 @@ def load_user_data():
     try:
         # Get the current directory of the script
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        csv_path = os.path.join(current_dir, "cobol", "bin", "USERS.csv")
+        csv_path = os.path.join(current_dir, "USERS.csv")
 
         # Check if the file exists
         if not os.path.exists(csv_path):
