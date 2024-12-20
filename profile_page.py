@@ -99,71 +99,98 @@ def profile_content(content_frame):
     profile_details_label.place(relx=0.016, rely=0.11, anchor=tkinter.W)
 
     # # Apply a CTkImage named Edit.png
-    # edit_profile = CTkImage(light_image=Image.open("Edit.png"), dark_image=Image.open("Edit.png"), size=(50, 50))
-    # edit_profile_label = CTkLabel(profile_frame, image=edit_profile, text="", fg_color="transparent")
-    # edit_profile_label.place(relx=0.98, rely=0.11, anchor=tkinter.E)
+    edit_profile = CTkImage(light_image=Image.open("Edit.png"), dark_image=Image.open("Edit.png"), size=(50, 50))
+    edit_profile_label = CTkLabel(profile_frame, image=edit_profile, text="", fg_color="transparent")
+    edit_profile_label.place(relx=0.98, rely=0.11, anchor=tkinter.E)
 
     user_data = load_user_data()  # Read user data from the CSV file
 
-    # def hide_profile_values(event):
-    #     print("Edit profile clicked")
-    #     name_value_label.place_forget()
-    #     email_value_label.place_forget()
-    #     contact_value_label.place_forget()
+    def hide_profile_values(event):
+        print("Edit profile clicked")
+        name_value_label.place_forget()
+        email_value_label.place_forget()
+        contact_value_label.place_forget()
 
-    #     name_entry = CTkEntry(profile_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
-    #     name_entry.place(relx=0.294, rely=0.4, anchor=tkinter.W)
-    #     name_entry.insert(0, user_data["name"] if user_data else "")
-    #     name_entry.focus_set()  # Set focus to the name_entry to indicate edit mode
+        name_entry = CTkEntry(profile_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
+        name_entry.place(relx=0.294, rely=0.4, anchor=tkinter.W)
+        name_entry.insert(0, user_data["name"] if user_data else "")
+        name_entry.focus_set()  # Set focus to the name_entry to indicate edit mode
 
-    #     email_entry = CTkEntry(profile_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
-    #     email_entry.place(relx=0.294, rely=0.6, anchor=tkinter.W)
-    #     email_entry.insert(0, user_data["email"] if user_data else "")
+        email_entry = CTkEntry(profile_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
+        email_entry.place(relx=0.294, rely=0.6, anchor=tkinter.W)
+        email_entry.insert(0, user_data["email"] if user_data else "")
 
-    #     contact_entry = CTkEntry(profile_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
-    #     contact_entry.place(relx=0.294, rely=0.8, anchor=tkinter.W)
-    #     contact_entry.insert(0, user_data["contact"] if user_data else "")
+        contact_entry = CTkEntry(profile_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
+        contact_entry.place(relx=0.294, rely=0.8, anchor=tkinter.W)
+        contact_entry.insert(0, user_data["contact"] if user_data else "")
 
-    #     def save_profile():
-    #         # Save updated values
-    #         updated_name = name_entry.get()
-    #         updated_email = email_entry.get()
-    #         updated_contact = contact_entry.get()
+        def save_profile():
+            # Save updated values
+            updated_name = name_entry.get()
+            updated_email = email_entry.get()
+            updated_contact = contact_entry.get()
 
-    #         # Update user_data dictionary
-    #         if user_data:
-    #             user_data["name"] = updated_name
-    #             user_data["email"] = updated_email
-    #             user_data["contact"] = updated_contact
+            # Update user_data dictionary
+            if user_data:
+                user_data["name"] = updated_name
+                user_data["email"] = updated_email
+                user_data["contact"] = updated_contact
 
-    #         # Update display labels
-    #         name_value_label.configure(text=updated_name)
-    #         email_value_label.configure(text=updated_email)
-    #         contact_value_label.configure(text=updated_contact)
+            # Update display labels
+            name_value_label.configure(text=updated_name)
+            email_value_label.configure(text=updated_email)
+            contact_value_label.configure(text=updated_contact)
 
-    #         # Hide entry fields and show updated labels
-    #         name_entry.place_forget()
-    #         email_entry.place_forget()
-    #         contact_entry.place_forget()
-    #         save_button_profile.place_forget()
-    #         name_value_label.place(relx=0.3, rely=0.4, anchor=tkinter.W)
-    #         email_value_label.place(relx=0.3, rely=0.6, anchor=tkinter.W)
-    #         contact_value_label.place(relx=0.3, rely=0.8, anchor=tkinter.W)
+            # Overwrite the original CSV file
+            try:
+                # Get the current directory of the script
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                csv_path = os.path.join(current_dir, "USERS.csv")
 
-    #     save_button_profile = CTkButton(
-    #         profile_frame, 
-    #         text="Save", 
-    #         fg_color="#7BA774",  # Updated foreground color
-    #         hover_color="#6E9770",  # Updated hover color
-    #         corner_radius=8, 
-    #         width=80,
-    #         command=save_profile
-    #     )
-    #     save_button_profile.place(relx=0.92, rely=0.11, anchor=tkinter.E)
+                # Load all rows from the existing CSV
+                with open(csv_path, mode="r", encoding="utf-8") as file:
+                    reader = csv.reader(file)
+                    rows = list(reader)
 
-    # edit_profile_label.bind("<Button-1>", hide_profile_values)
-    # edit_profile_label.bind("<Enter>", lambda e: edit_profile_label.configure(cursor="hand2"))
-    # edit_profile_label.bind("<Leave>", lambda e: edit_profile_label.configure(cursor=""))
+                # Update the specific rows (rows 4, 5, 6 in zero-indexed format)
+                if len(rows) >= 6:  # Ensure there are enough rows in the file
+                    rows[3][0] = updated_name  # Row for name
+                    rows[4][0] = updated_email  # Row for email
+                    rows[5][0] = updated_contact  # Row for contact
+
+                # Overwrite the file with updated rows
+                with open(csv_path, mode="w", encoding="utf-8", newline="") as file:
+                    writer = csv.writer(file)
+                    writer.writerows(rows)
+
+                print("CSV file updated successfully.")
+
+            except Exception as e:
+                print(f"Error updating CSV file: {e}")
+
+            # Hide entry fields and show updated labels
+            name_entry.place_forget()
+            email_entry.place_forget()
+            contact_entry.place_forget()
+            save_button_profile.place_forget()
+            name_value_label.place(relx=0.3, rely=0.4, anchor=tkinter.W)
+            email_value_label.place(relx=0.3, rely=0.6, anchor=tkinter.W)
+            contact_value_label.place(relx=0.3, rely=0.8, anchor=tkinter.W)
+
+        save_button_profile = CTkButton(
+            profile_frame, 
+            text="Save", 
+            fg_color="#7BA774",  # Updated foreground color
+            hover_color="#6E9770",  # Updated hover color
+            corner_radius=8, 
+            width=80,
+            command=save_profile
+        )
+        save_button_profile.place(relx=0.92, rely=0.11, anchor=tkinter.E)    
+
+    edit_profile_label.bind("<Button-1>", hide_profile_values)
+    edit_profile_label.bind("<Enter>", lambda e: edit_profile_label.configure(cursor="hand2"))
+    edit_profile_label.bind("<Leave>", lambda e: edit_profile_label.configure(cursor=""))
 
     profile_separator = CTkFrame(profile_frame, fg_color="#b6b9bd", height=2)
     profile_separator.place(relx=0.001, rely=0.23, relwidth=0.997, anchor=tkinter.W)
@@ -193,9 +220,9 @@ def profile_content(content_frame):
     account_details_label.place(relx=0.016, rely=0.11, anchor=tkinter.W)
 
     # Apply a CTkImage named Edit.png
-    # edit_userpass = CTkImage(light_image=Image.open("Edit.png"), dark_image=Image.open("Edit.png"), size=(50, 50))
-    # edit_userpass_label = CTkLabel(userpass_frame, image=edit_userpass, text="", fg_color="transparent")
-    # edit_userpass_label.place(relx=0.98, rely=0.11, anchor=tkinter.E)
+    edit_userpass = CTkImage(light_image=Image.open("Edit.png"), dark_image=Image.open("Edit.png"), size=(50, 50))
+    edit_userpass_label = CTkLabel(userpass_frame, image=edit_userpass, text="", fg_color="transparent")
+    edit_userpass_label.place(relx=0.98, rely=0.11, anchor=tkinter.E)
 
     userpass_separator = CTkFrame(userpass_frame, fg_color="#b6b9bd", height=2)
     userpass_separator.place(relx=0.001, rely=0.23, relwidth=0.997, anchor=tkinter.W)
@@ -219,13 +246,16 @@ def profile_content(content_frame):
     pin_value_label.place(relx=0.3, rely=0.8, anchor=tkinter.W)
 
     def hide_userpass_values(event):
+        # Hide the value labels
         username_value_label.place_forget()
         password_value_label.place_forget()
         pin_value_label.place_forget()
 
+        # Create entry fields for editing user credentials
         username_entry = CTkEntry(userpass_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
         username_entry.place(relx=0.294, rely=0.4, anchor=tkinter.W)
         username_entry.insert(0, user_data["username"] if user_data else "")
+        username_entry.focus_set()  # Set focus to the username entry to ensure the cursor appears
 
         password_entry = CTkEntry(userpass_frame, fg_color="transparent", border_width=0, width=400, **input_properties)
         password_entry.place(relx=0.294, rely=0.6, anchor=tkinter.W)
@@ -240,17 +270,45 @@ def profile_content(content_frame):
             updated_password = password_entry.get()
             updated_pin = pin_entry.get()
 
+            # Update user_data dictionary
             if user_data:
                 user_data["username"] = updated_username
                 user_data["password"] = updated_password
                 user_data["pin"] = updated_pin
-            
-            update_database(updated_username, updated_password, updated_pin)
 
+            # Update display labels
             username_value_label.configure(text=updated_username)
             password_value_label.configure(text=updated_password)
             pin_value_label.configure(text=updated_pin)
 
+            # Overwrite the original CSV file
+            try:
+                # Get the current directory of the script
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                csv_path = os.path.join(current_dir, "USERS.csv")
+
+                # Load all rows from the existing CSV
+                with open(csv_path, mode="r", encoding="utf-8") as file:
+                    reader = csv.reader(file)
+                    rows = list(reader)
+
+                # Update the specific rows (rows 1, 2, 3 in zero-indexed format)
+                if len(rows) >= 6:  # Ensure there are enough rows in the file
+                    rows[0][0] = updated_username  # Row for username
+                    rows[1][0] = updated_password  # Row for password
+                    rows[2][0] = updated_pin       # Row for pin
+
+                # Overwrite the file with updated rows
+                with open(csv_path, mode="w", encoding="utf-8", newline="") as file:
+                    writer = csv.writer(file)
+                    writer.writerows(rows)
+
+                print("CSV file updated successfully for username, password, and pin.")
+
+            except Exception as e:
+                print(f"Error updating CSV file: {e}")
+
+            # Hide entry fields and show updated labels
             username_entry.place_forget()
             password_entry.place_forget()
             pin_entry.place_forget()
@@ -271,9 +329,10 @@ def profile_content(content_frame):
         )
         save_button_userpass.place(relx=0.92, rely=0.11, anchor=tkinter.E)
 
-    # edit_userpass_label.bind("<Button-1>", hide_userpass_values)
-    # edit_userpass_label.bind("<Enter>", lambda e: edit_userpass_label.configure(cursor="hand2"))
-    # edit_userpass_label.bind("<Leave>", lambda e: edit_userpass_label.configure(cursor=""))
+
+    edit_userpass_label.bind("<Button-1>", hide_userpass_values)
+    edit_userpass_label.bind("<Enter>", lambda e: edit_userpass_label.configure(cursor="hand2"))
+    edit_userpass_label.bind("<Leave>", lambda e: edit_userpass_label.configure(cursor=""))
 
     def create_circular_image(size=(150, 150)):
         """Create a default circular image placeholder with transparent background."""
