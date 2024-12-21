@@ -141,6 +141,8 @@ def profile_content(content_frame):
             email_value_label.configure(text=updated_email)
             contact_value_label.configure(text=updated_contact)
 
+            name_label.configure(text=updated_name)
+
             # Overwrite the original CSV file
             try:
                 # Get the current directory of the script
