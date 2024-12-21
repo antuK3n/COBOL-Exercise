@@ -5,6 +5,7 @@ from pathlib import Path
 from customtkinter import *
 import tkinter
 from PIL import Image
+import subprocess
 import pywinstyles
 import functools
 
@@ -165,7 +166,14 @@ def create_login_window():
         pin = ''.join(pin_entry.get() for pin_entry in pin_entries)
         if verify_pin_hash(pin):
             print("PIN verified successfully.")
-            login_app.destroy()
+            login_app.destroy()  # Close the login window
+
+            # Launch main.py
+            main_script = os.path.join(os.path.dirname(__file__), "main.py")
+            if os.path.exists(main_script):
+                subprocess.Popen([sys.executable, main_script])
+            else:
+                print("main.py not found!")
         else:
             print("Invalid PIN.")
             for pin_entry in pin_entries:
