@@ -1,11 +1,16 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. SIGNUP-TO-CSV.
 
+       *> This program allows a user to sign up by providing basic information.
+       *> The user details are then saved into a CSV file named 'USERS.csv'.
+
        ENVIRONMENT DIVISION.
            INPUT-OUTPUT SECTION.
                FILE-CONTROL.
                    SELECT CSV-FILE ASSIGN TO 'USERS.csv'
                        ORGANIZATION IS LINE SEQUENTIAL.
+
+       *> The file USERS.csv is used to store user data sequentially
 
        DATA DIVISION.
        FILE SECTION.
@@ -13,14 +18,16 @@
        01  CSV-RECORD.
            05  CSV-LINE        PIC X(200).
 
+       *> The CSV-FILE contains one record definition: CSV-LINE
+
        WORKING-STORAGE SECTION.
-       01  USER-USERNAME      PIC X(50) VALUE SPACES.
-       01  USER-PASSWORD      PIC X(50) VALUE SPACES.
-       01  USER-PIN           PIC 9(6) VALUE 0.
-       01  USER-NAME          PIC X(50) VALUE SPACES.
-       01  USER-EMAIL         PIC X(50) VALUE SPACES.
-       01  USER-CONTACT       PIC 9(11) VALUE 0.
-       01  TEMP-RECORD        PIC X(200).
+       01  USER-USERNAME      PIC X(50) VALUE SPACES.  *> Stores username.
+       01  USER-PASSWORD      PIC X(50) VALUE SPACES.  *> Stores password.
+       01  USER-PIN           PIC 9(6) VALUE 0.        *> Stores 6-digit PIN.
+       01  USER-NAME          PIC X(50) VALUE SPACES.  *> Stores full name.
+       01  USER-EMAIL         PIC X(50) VALUE SPACES.  *> Stores email address.
+       01  USER-CONTACT       PIC 9(11) VALUE 0.       *> Stores contact number.
+       01  TEMP-RECORD        PIC X(200).              *> Temp storage for CSV.
 
        PROCEDURE DIVISION.
            OPEN OUTPUT CSV-FILE
@@ -38,6 +45,7 @@
            DISPLAY "----------------------------------------"
            STOP RUN.
 
+       *> This section collects user input for the signup form.
        GET-USER-INPUT.
            DISPLAY "Enter Username: "
            ACCEPT USER-USERNAME
@@ -52,6 +60,7 @@
            DISPLAY "Enter Contact Number (11 digits): "
            ACCEPT USER-CONTACT.
 
+       *> This section writes the user input to the CSV file line by line.
        WRITE-TO-CSV.
            MOVE USER-USERNAME TO CSV-LINE
            WRITE CSV-RECORD
