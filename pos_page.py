@@ -41,6 +41,44 @@ def pos_content(content_frame):
 
     CTkLabel(header_frame, text="Products", **label_properties).place(relx=0.02, rely=0.5, anchor="w")
 
+    def inventory_csv():
+        data = fetch_products()
+
+        with open('INVENTORY.csv', mode='w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            
+            # Write product data
+            for product in data:
+                writer.writerow([
+                    product['id'], 
+                    product['name'], 
+                    product['code'], 
+                    product['available'], 
+                    product['price']
+                ])
+        
+        print(f"Inventory exported to INVENTORY.csv")
+
+    def inventory_export_click():
+        # Export the data to CSV before clearing the table
+        inventory_csv()
+
+        # Optionally, show a message confirming that the receipt has been saved
+        messagebox.showinfo("Inventory", "Data has been saved to INVENTORY.csv")
+
+    #Generate Products Inventory (Green)
+    inventory_button = CTkButton(
+        header_frame,  # Assuming calculator_frame is already defined
+        text="Export Inventory",
+        font=("Public Sans", 16),
+        text_color="white",
+        fg_color="#4CAF50",
+        hover_color="#45a049",
+        corner_radius=10,
+        command=inventory_export_click  # Bind the click event to the function
+    )
+    inventory_button.place(relx=0.35, rely=0.53, anchor="e", relwidth=0.2, relheight=0.7)
+
     # Create container
     container = CTkFrame(products_frame, fg_color="#f0f0f0", border_width=0)
     container.pack(fill="both", expand=True, padx=0, pady=0)
