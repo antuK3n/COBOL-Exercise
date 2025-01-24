@@ -11,8 +11,8 @@
        PROCEDURE DIVISION.
        BEGIN.
            DISPLAY "Choose an option:"
-           DISPLAY "1 - Clear Inventory (inventory_delete.bat)"
-           DISPLAY "2 - Delete Account (account_delete.bat)"
+           DISPLAY "1 - Clear Inventory"
+           DISPLAY "2 - Delete Account"
            DISPLAY "3 - Exit Program"
            DISPLAY "Enter your choice (1, 2, or 3): " WITH NO ADVANCING.
            ACCEPT USER-CHOICE.
